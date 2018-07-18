@@ -1,6 +1,5 @@
 package com.example.sonika.allinone
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.DialogInterface
 import android.content.Intent
@@ -21,7 +20,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.Toast
 import com.example.sonika.allinone.ApiInterface.Companion.client
 import com.example.sonika.allinone.ApiInterface.Companion.retrofit
 import kotlinx.android.synthetic.main.fragment_form.*
@@ -49,7 +47,7 @@ import java.util.*
 
 //contacts import
 
-class FormFragment : Fragment() {
+class FormFragment : BaseFragment() {
     val REQUEST_MULTIPLE_PERMISSIONS = 1234
     val PICK_CONTACT = 5678
     var GALLERY = 1
@@ -69,6 +67,9 @@ class FormFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val sp = (context as AppCompatActivity).getSharedPreferences("USER_LOGIN", 0)
+
+
 //        load spinner with retrofit data
         spinnerOperation()
 
@@ -85,6 +86,19 @@ class FormFragment : Fragment() {
             //import Contacts
             val intent = Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI)
             startActivityForResult(intent, PICK_CONTACT)
+
+        })
+
+        btn_logout.setOnClickListener(View.OnClickListener {
+            val sp = (context as AppCompatActivity).getSharedPreferences("USER_LOGIN", 0)
+            val editor = sp.edit()
+            editor.clear()
+            editor.apply()
+
+            val fragmentManager = (context as AppCompatActivity).supportFragmentManager
+            val fragmentTransaction = fragmentManager.beginTransaction()
+            fragmentTransaction.replace(R.id.container, LoginFragment())
+            fragmentTransaction.commit()
 
         })
 
@@ -287,9 +301,17 @@ class FormFragment : Fragment() {
     }
 
 
-    private fun spinnerOperation() {
+
+
+    private fun spinnerOperation(){
 
         if (isOnline()) {
+
+
+            progessBar.isIndeterminate
+            progessBar.visibility = View.VISIBLE
+            progessBar.isClickable = false
+
             client = retrofit.create(ApiInterface::class.java)
 
             val call = client.getOccupation()
@@ -297,15 +319,16 @@ class FormFragment : Fragment() {
             call.enqueue(object : Callback<List<User>> {
                 override fun onFailure(call: Call<List<User>>?, t: Throwable?) {
                     //fail toast here
+                    progessBar.visibility = View.GONE
                     activity!!.toastmessage("failed")
                 }
 
                 override fun onResponse(call: Call<List<User>>?, response: Response<List<User>>?) {
+                    progessBar.visibility = View.GONE
                     val responseString = response!!.body()
                     val list = responseString!!.map { it.Text }
                     spinner_occupation.adapter = ArrayAdapter<String>(context,
                             android.R.layout.simple_spinner_dropdown_item, list)
-
                 }
 
             })
