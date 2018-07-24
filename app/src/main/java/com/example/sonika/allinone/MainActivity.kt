@@ -16,6 +16,12 @@ class MainActivity : AppCompatActivity(){
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        fun setTitle(title : String)
+        {
+            toolbar_title.text = title
+        }
+
         val fragmentManager = this.supportFragmentManager
         val fragmentTransaction = fragmentManager.beginTransaction()
         fragmentTransaction.replace(R.id.container, LoginFragment())
@@ -23,5 +29,7 @@ class MainActivity : AppCompatActivity(){
 
 
     }
+
+
 
 }

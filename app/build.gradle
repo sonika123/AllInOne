@@ -39,8 +39,12 @@ dependencies {
     //butterknife
     implementation 'com.jakewharton:butterknife:8.8.1'
     kapt 'com.jakewharton:butterknife-compiler:8.8.1'
+
     // Retrofit & OkHttp
     implementation 'com.squareup.retrofit2:retrofit:2.3.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.3.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:3.10.0'
 
+//    Picasso
+    implementation 'com.squareup.picasso:picasso:2.71828'
 }

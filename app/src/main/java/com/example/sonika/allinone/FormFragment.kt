@@ -1,27 +1,28 @@
 package com.example.sonika.allinone
 
+import android.app.Activity
 import android.app.AlertDialog
+import android.app.ProgressDialog
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.net.ConnectivityManager
-import android.net.NetworkInfo
-import android.os.Build
-import android.os.Bundle
-import android.os.Environment
+import android.os.*
 import android.provider.ContactsContract
 import android.provider.MediaStore
+import android.support.design.widget.TextInputEditText
 import android.support.v4.app.Fragment
 import android.support.v4.content.ContextCompat.checkSelfPermission
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import butterknife.BindView
+import butterknife.OnClick
 import com.example.sonika.allinone.ApiInterface.Companion.client
 import com.example.sonika.allinone.ApiInterface.Companion.retrofit
+import com.mobsandgeeks.saripaar.annotation.NotEmpty
+import kotlinx.android.synthetic.main.fragment_currency.*
 import kotlinx.android.synthetic.main.fragment_form.*
 import retrofit2.Call
 import retrofit2.Callback
@@ -48,101 +49,115 @@ import java.util.*
 //contacts import
 
 class FormFragment : BaseFragment() {
-    val REQUEST_MULTIPLE_PERMISSIONS = 1234
-    val PICK_CONTACT = 5678
-    var GALLERY = 1
-    var CAMERA = 2
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+
+    override var layoutInt: Int
+        get() = R.layout.fragment_form
+        set(value) {}
+
+
+    @NotEmpty
+    @BindView(R.id.text_input_name)
+    lateinit var name_input: TextInputEditText
+
+    @NotEmpty
+    @BindView(R.id.text_input_contact_number)
+    lateinit var contact_number: TextInputEditText
+
+    @OnClick(R.id.btn_ok)
+    fun submit() {
+        validate()
+
+
 
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_form, container, false)
+    override fun onValidationSucceeded() {
+
+        activity?.toastmessage("hello ok is clicked")
+        openFragment(CurrencyFragment())
+
+
+
+    }
+
+    @OnClick(R.id.btn_import_contact)
+    fun importContact() {
+        val intent = Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI)
+        startActivityForResult(intent, Constants.PICK_CONTACT)
+
+    }
+
+    @OnClick(R.id.imageView_profilepicture)
+    fun profilePicture() {
+        imageView_profilepictureOperation()
+    }
+
+    @OnClick(R.id.btn_logout)
+    fun logout() {
+        val sp = (context as AppCompatActivity).getSharedPreferences("USER_LOGIN", 0)
+        val editor = sp.edit()
+        editor.clear()
+        editor.apply()
+
+        openFragment(LoginFragment())
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        activity?.setTitle("Profile")
         val sp = (context as AppCompatActivity).getSharedPreferences("USER_LOGIN", 0)
-
-
+        sp.edit().putString("loggedIn", "loggedIn").apply()
 //        load spinner with retrofit data
         spinnerOperation()
 
 //confirm permissions
         accessPermissionForAll()
-
-        imageView_profilepicture.setOnClickListener(View.OnClickListener {
-
-            imageView_profilepictureOperation()
-        })
-//        click buton to import phone's contact
-        btn_import_contact.setOnClickListener(View.OnClickListener {
-
-            //import Contacts
-            val intent = Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI)
-            startActivityForResult(intent, PICK_CONTACT)
-
-        })
-
-        btn_logout.setOnClickListener(View.OnClickListener {
-            val sp = (context as AppCompatActivity).getSharedPreferences("USER_LOGIN", 0)
-            val editor = sp.edit()
-            editor.clear()
-            editor.apply()
-
-            val fragmentManager = (context as AppCompatActivity).supportFragmentManager
-            val fragmentTransaction = fragmentManager.beginTransaction()
-            fragmentTransaction.replace(R.id.container, LoginFragment())
-            fragmentTransaction.commit()
-
-        })
-
-
     }
-
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == PICK_CONTACT) {
 
-                    val contactData = data!!.data
-                    val c = (context as AppCompatActivity).managedQuery(contactData, null, null, null, null)
+        if (requestCode == Constants.PICK_CONTACT) {
 
-                    if (c.moveToFirst()) {
+            if(resultCode == Activity.RESULT_OK) {
+                activity?.toastmessage("okay")
 
-                        val id = c.getString(c.getColumnIndexOrThrow(ContactsContract.Contacts._ID))
-                        val hasPhone = c.getString(c.getColumnIndex(ContactsContract.Contacts.HAS_PHONE_NUMBER))
+                val contactData = data!!.data
+                val c = (context as AppCompatActivity).managedQuery(contactData, null, null, null, null)
 
-                        try {
+                if (c.moveToFirst()) {
 
-                            if (hasPhone.equals("1", ignoreCase = true)) {
+                    val id = c.getString(c.getColumnIndexOrThrow(ContactsContract.Contacts._ID))
+                    val hasPhone = c.getString(c.getColumnIndex(ContactsContract.Contacts.HAS_PHONE_NUMBER))
 
-                                val phones = (context as AppCompatActivity).contentResolver.query(
-                                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null,
-                                        ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = " + id, null, null)
+                    try {
 
+                        if (hasPhone.equals("1", ignoreCase = true)) {
 
-                                textinput_contact_number.setText("")
-                                while (phones.moveToNext()) {
-                                    val cNumber = phones.getString(phones.getColumnIndex("data1"))
-                                    textinput_contact_number.append(cNumber + " ")
-                                }
+                            val phones = (context as AppCompatActivity).contentResolver.query(
+                                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null,
+                                    ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = " + id, null, null)
+
+                            text_input_contact_number.setText("")
+                            while (phones.moveToNext()) {
+                                val cNumber = phones.getString(phones.getColumnIndex("data1"))
+                                text_input_contact_number.append(cNumber + " ")
                             }
-                        } catch (e: Exception) {
-                            print(e)
+                            phones.close()
+
                         }
-
+                    } catch (e: Exception) {
+                        print(e)
+                    }
                 }
+            }
+            else if (resultCode == Activity.RESULT_CANCELED)
+                activity?.toastmessage("cancled")
 
-        }
 
-        else if (requestCode == GALLERY)
-        {
+        } else if (requestCode == Constants.GALLERY) {
             if (data != null) {
                 val contentURI = data.data
                 try {
@@ -156,10 +171,7 @@ class FormFragment : BaseFragment() {
                 }
 
             }
-        }
-
-        else if (requestCode == CAMERA)
-        {
+        } else if (requestCode == Constants.CAMERA) {
             val thumbnail = data!!.extras!!.get("data") as Bitmap
             saveImage(thumbnail)
             imageView_profilepicture!!.setImageBitmap(thumbnail)
@@ -167,7 +179,7 @@ class FormFragment : BaseFragment() {
 
     }
 
-    private fun saveImage(myBitmap: Bitmap) : String{
+    private fun saveImage(myBitmap: Bitmap): String {
         val bytes = ByteArrayOutputStream()
 
         myBitmap.compress(Bitmap.CompressFormat.JPEG, 90, bytes)
@@ -175,15 +187,13 @@ class FormFragment : BaseFragment() {
         val destination = File(
                 (Environment.getExternalStorageDirectory()).toString() + IMAGE_DIRECTORY)
 
-        Log.d("fee",destination.toString())
-        if (!destination.exists())
-        {
+        Log.d("fee", destination.toString())
+        if (!destination.exists()) {
 
             destination.mkdirs()
         }
-        try
-        {
-            Log.d("heel",destination.toString())
+        try {
+            Log.d("heel", destination.toString())
             val fileDetails = File(destination, ((Calendar.getInstance()
                     .getTimeInMillis()).toString() + ".jpg"))
             fileDetails.createNewFile()
@@ -197,13 +207,13 @@ class FormFragment : BaseFragment() {
             fo.close()
 
             return fileDetails.getAbsolutePath()
-        }
-        catch (e1: IOException) {
+        } catch (e1: IOException) {
             e1.printStackTrace()
         }
 
         return ""
     }
+
     companion object {
         val IMAGE_DIRECTORY = "/DCIM/hello"
     }
@@ -243,7 +253,7 @@ class FormFragment : BaseFragment() {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                                 requestPermissions(permissionsList.toTypedArray(),
 
-                                        REQUEST_MULTIPLE_PERMISSIONS)
+                                        Constants.REQUEST_MULTIPLE_PERMISSIONS)
                             }
                         })
 
@@ -254,7 +264,7 @@ class FormFragment : BaseFragment() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 requestPermissions(permissionsList.toTypedArray(),
 
-                        REQUEST_MULTIPLE_PERMISSIONS)
+                        Constants.REQUEST_MULTIPLE_PERMISSIONS)
             }
 
             return
@@ -301,46 +311,62 @@ class FormFragment : BaseFragment() {
     }
 
 
-
-
     private fun spinnerOperation(){
 
-        if (isOnline()) {
+//        ProgressDialog
+        val mProgressDialog = ProgressDialog(context)
+        mProgressDialog.setMessage("Please wait")
+        mProgressDialog.show()
 
 
-            progessBar.isIndeterminate
-            progessBar.visibility = View.VISIBLE
-            progessBar.isClickable = false
+
+        if (activity?.isOnline()!!) {
+
 
             client = retrofit.create(ApiInterface::class.java)
-
             val call = client.getOccupation()
+
+//            val callExchangeRate = client.getexchangerate()
+//            callExchangeRate.enqueue(object  : Callback<List<Currency>>{
+//                override fun onFailure(call: Call<List<Currency>>?, t: Throwable?) {
+//
+//                    activity!!.toastmessage("failed")
+//                }
+//
+//                override fun onResponse(call: Call<List<Currency>>?, response: Response<List<Currency>>?) {
+//                   val responseCurrency = response?.body()
+//
+//                    recyclerview_list.adapter = CurrencyAdapter(responseCurrency)
+//                     }
+//
+//            })
 
             call.enqueue(object : Callback<List<User>> {
                 override fun onFailure(call: Call<List<User>>?, t: Throwable?) {
-                    //fail toast here
-                    progessBar.visibility = View.GONE
+
                     activity!!.toastmessage("failed")
                 }
 
                 override fun onResponse(call: Call<List<User>>?, response: Response<List<User>>?) {
-                    progessBar.visibility = View.GONE
+
                     val responseString = response!!.body()
                     val list = responseString!!.map { it.Text }
                     spinner_occupation.adapter = ArrayAdapter<String>(context,
                             android.R.layout.simple_spinner_dropdown_item, list)
+                    mProgressDialog.dismiss()
+                    activity?.toastmessage("success")
                 }
+
 
             })
         }
+        else
+        {
+            mProgressDialog.dismiss()
+            activity?.toastmessage("failed to load spinner!! no internet")
 
-    }
+        }
 
-    fun isOnline(): Boolean {
-        val cm = context!!.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val activeNetwork: NetworkInfo? = cm.activeNetworkInfo
-        val isConnected: Boolean = activeNetwork?.isConnectedOrConnecting == true
-        return isConnected
     }
 
     private fun imageView_profilepictureOperation() {
@@ -360,10 +386,13 @@ class FormFragment : BaseFragment() {
 
     private fun choosePhotoFromGallery() {
         val intentPickPhoto = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-        startActivityForResult(intentPickPhoto, GALLERY)  }
+        startActivityForResult(intentPickPhoto, Constants.GALLERY)
+
+    }
 
     private fun choosePhotoFromCamera() {
         val intentcamera = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        startActivityForResult(intentcamera, CAMERA)  }
+        startActivityForResult(intentcamera, Constants.CAMERA)
+    }
 
 }
